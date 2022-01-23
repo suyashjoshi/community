@@ -112,7 +112,6 @@ sudo npm install ghost-cli@latest -g
 ghost help
 
 
-
 # Ghost must be installed in a directory so let's create one. Change `sitename` to whatever you like such as your website name
 sudo mkdir -p /var/www/sitename
 # Set directory owner: Replace <user> with the name of your user
@@ -127,6 +126,8 @@ ghost install
 ```
 
 ### Ghost Install Steps and other important information
+
+For update information regarding Ghost setup, refer to officla [Ghost Developer Documentation](https://ghost.org/docs/install/)
 
 **Blog URL**
 Enter the exact URL your publication will be available at and include the protocol for HTTP or HTTPS. For example, https://example.com. If you use HTTPS, Ghost-CLI will offer to set up SSL for you. Using IP addresses will cause errors.
@@ -161,7 +162,15 @@ Choosing yes runs Ghost, and makes your site work.
 **Ghost maintenance**
 Once Ghost is properly set up it’s important to keep it properly maintained and up to date. Fortunately, this is relatively easy to do using Ghost-CLI. Run ghost help for a list of available commands, or explore the full Ghost-CLI documentation.
 
-**What to do if the install fails**
+**Key Ghost CLI commands**
+- `ghost stop` to stop Ghost
+- `ghost start` to start Ghost
+- `ghost log` views logs
+- `ghost ls` to list all running Ghost blogs
+- `ghost help` for a list of available command
+
+
+**What to do if the install fails ?**
 If an install goes horribly wrong, use ghost uninstall to remove it and try again. This is preferable to deleting the folder to ensure no artifacts are left behind.
 If an install is interrupted or the connection lost, use ghost setup to restart the configuration process.
 For troubleshooting and errors, use the site search and FAQ section to find information about common error messages.
