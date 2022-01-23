@@ -49,36 +49,124 @@ instructions for anything more complex.
 
 This tutorial assumes that you're using the Microsoft Windows operating system.
 
-1.  Login to [Google Cloud Console](https://console.cloud.google.com/).
-2.  Select the approprite Google Cloud project where you wish to create the compute instance for the hosting your website using Ghost
-3.  Review Google Cloud [Free Tier resources](https://cloud.google.com/free/docs/gcp-free-tier/#compute
+1.  Review Google Cloud [Free Tier resources](https://cloud.google.com/free/docs/gcp-free-tier/#compute
+2.  Login to [Google Cloud Console](https://console.cloud.google.com/).
+3.  Select the approprite Google Cloud project where you wish to create the compute instance for the hosting your website using Ghost
 
-## Setup Google Compute Instance (Free Tier)
 
-Break the tutorial body into as many sections and subsections as needed, with concise headings.
+### Provision Compute Instance
 
-### Use short numbered lists for procedures
+1. Navigate to [Google Cloud Compute Engine webpage](https://console.cloud.google.com/compute/instances)
+2. Click 'Create Instance'
+3. Give it a meaningful name like 'my-website-ghost-ubuntu"
+4. Select one of the Free Tier Region (Oregon: us-west1, Iowa: us-central1, South Carolina: us-east1) and default zone for the same.
+5. Machine Configuration : Series must be *E2* and Machine Type must be *e2-micro(2 vCPU, 1 GB memory). Change Boot Disk Settings to *Ubuntu* Version *Ubuntu 20.04 LTS* for Operating System with *Balance persistent disk* Boot Disk type at *30 GB* storage which is part of free tier.
+6. Firewall : Check to allow both *HTTP Traffic* and *HTTPS Traffic*
+7. Network Interface : Create a Network Interface for this VM and the leave all settings as default.
+8. Finally click 'Create' button and in few moments your Compute Instance should be available.
 
-Use numbered lists of steps for procedures. Each action that the reader must take should be its own step. Start each step with the action, such as *Click*, 
-*Run*, or *Enter*.
+### Configure Nework
 
-Keep procedures to 7 steps or less, if possible. If a procedure is longer than 7 steps, consider how it might be separated into sub-procedures, each in its
-own subsection.
+1. Click on the Hamburger looking menu on the left side to open the navigation window.
+2. Navigate to Networking > VPC network > External IP addresses -> Click on "Reserver a Static Address" button
+3. Enter a name for your static IP adddress setting, Change *Networking service tier* to 'Standard', *Region* to 'us-west1(Oregon) and *Attached to* your compute instance that you created in previous step. Click 'Reserve' to confirm. 
+4. After confirmation, you should see new static IP assed to your compute instance, here take note of the *External IP Address*, we will use it later to open the Ghost website.
 
-### Provide context, but don't overdo the screenshots
+## Configuring Ubuntu and Ghost
 
-Provide context and explain what's going on.
+Finally it's time to login to the virtual machine and set it up so we can install and run Ghost. Follow the steps below and in no time you will have Ghost running securely. During install, the CLI will ask a number of questions to configure, just follow the steps in the wizards and prompts accordindly.
 
-Use screenshots only when they help the reader. Don't provide a screenshot for every step.
+1. Navigate to your project in the Compute Instance Portal
+2. Click the 'drop down' icon next to *SSH* and chose 'Open in browser window', this is the easier and quickest way to SSH inside the VM.
+3. Verify Ubuntu Version by typing `lsb_release -a` and you should see Ubuntu 20.04.3 LTS in the 'Description' as the OS version
+4. It's always good to create an admin user with super user privilage so let's do that and switch to this new user. Follow the commands and wizard to do the same:
 
-Help the reader to recognize what success looks like along the way. For example, describing the result of a step helps the reader to feel like they're doing
-it right and helps them know things are working so far.
+```
+sudo adduser <username>
+sudo usermod -aG sudo <username>
+su - <username>
+```
 
-## Cleaning up
+4. Let us also update Ubuntu packages by runing `sudo apt-get update` followed by `sudo apt-get upgrade`
+5. Now we will install the key packages we need for Ghost so do the same by running the following commands:
 
-Tell the reader how to shut down what they built to avoid incurring further costs.
+```
+# Ghost uses an NGINX server so let's install that and open firewall for the same to allow web traffic over HTTP & HTTPS
+sudo apt-get install nginx
+sudo ufw allow 'Nginx Full'
 
-### Example: Cleaning up
+# Install MySQL as Database for Ghost & Set password for MySQL 'Root' User. Leave the quotes, just change the password to a something else
+sudo apt-get install mysql-server
+# Now update your user with this command. Replace 'password' with your password, but keep the quote marks!
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'password';
+# Then exit MySQL
+quit
+
+# Add the NodeSource APT repository for Node 14
+curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash
+# Install Node.js
+sudo apt-get install -y nodejs
+
+# Install & Verfiy Ghost CLI
+sudo npm install ghost-cli@latest -g
+ghost help
+
+
+
+# Ghost must be installed in a directory so let's create one. Change `sitename` to whatever you like such as your website name
+sudo mkdir -p /var/www/sitename
+# Set directory owner: Replace <user> with the name of your user
+sudo chown <username>:<username> /var/www/sitename
+# Set the correct permissions
+sudo chmod 775 /var/www/sitename
+# Then navigate into it
+cd /var/www/sitename
+
+## Install Ghost via the Ghost CLI
+ghost install
+```
+
+### Ghost Install Steps and other important information
+
+**Blog URL**
+Enter the exact URL your publication will be available at and include the protocol for HTTP or HTTPS. For example, https://example.com. If you use HTTPS, Ghost-CLI will offer to set up SSL for you. Using IP addresses will cause errors.
+
+**MySQL hostname**
+This determines where your MySQL database can be accessed from. When MySQL is installed on the same server, use localhost (press Enter to use the default value). If MySQL is installed on another server, enter the name manually.
+
+**MySQL username / password**
+If you already have an existing MySQL database, enter the the username. Otherwise, enter root. Then supply the password for your user.
+
+**Ghost database name**
+Enter the name of your database. It will be automatically set up for you, unless you’re using a non-root MySQL user/pass. In that case the database must already exist and have the correct permissions.
+
+**Set up a ghost MySQL user? (Recommended)**
+If you provided your root MySQL user, Ghost-CLI can create a custom MySQL user that can only access/edit your new Ghost database and nothing else.
+
+**Set up NGINX? (Recommended)**
+Sets NGINX up automatically enabling your site to be viewed by the outside world. Setting up NGINX manually is possible, but why would you choose a hard life?
+
+**Set up SSL? (Recommended)**
+If you used an https Blog URL and have already pointed your domain to the right place, Ghost-CLI can automatically set up SSL for you using Let’s Encrypt. Alternatively you do this later by running ghost setup ssl at any time.
+
+**Enter your email**
+SSL certification setup requires an email address so that you can be kept informed if there is any issue with your certificate, including during renewal.
+
+**Set up systemd? (Recommended)**
+systemd is the recommended process manager tool to keep Ghost running smoothly. We recommend choosing yes but it’s possible to set up your own process management.
+
+**Start Ghost?**
+Choosing yes runs Ghost, and makes your site work.
+
+**Ghost maintenance**
+Once Ghost is properly set up it’s important to keep it properly maintained and up to date. Fortunately, this is relatively easy to do using Ghost-CLI. Run ghost help for a list of available commands, or explore the full Ghost-CLI documentation.
+
+**What to do if the install fails**
+If an install goes horribly wrong, use ghost uninstall to remove it and try again. This is preferable to deleting the folder to ensure no artifacts are left behind.
+If an install is interrupted or the connection lost, use ghost setup to restart the configuration process.
+For troubleshooting and errors, use the site search and FAQ section to find information about common error messages.
+
+### Hello World blog powered by Ghost!
 
 To avoid incurring charges to your Google Cloud account for the resources used in this tutorial, you can delete the project.
 
